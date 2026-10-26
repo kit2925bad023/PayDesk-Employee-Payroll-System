@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Salary calculator | PayDesk</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="app-wrapper">
+    <div class="mobile-overlay" id="overlay"></div>
+    <aside class="sidebar" id="sidebar">
+        <a class="brand" th:href="@{/}"><span class="brand-logo">PD</span><span><span class="brand-title">PayDesk</span><span class="brand-subtitle">Payroll management</span></span></a>
+        <div class="nav-title">Workspace</div>
+        <nav aria-label="Main navigation"><ul class="nav-menu">
+            <li><a class="nav-link" th:href="@{/}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</a></li>
+            <li><a class="nav-link" th:href="@{/employees}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Employees</a></li>
+            <li><a class="nav-link active" th:href="@{/payroll}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/></svg>Salary calculator</a></li>
+            <li><a class="nav-link" th:href="@{/payroll/history}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>Payroll history</a></li>
+        </ul></nav>
+    </aside>
+    <main class="main-content">
+        <header class="topbar"><div class="topbar-left"><button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Open navigation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div><h1>Salary calculator</h1><p class="page-subtitle">Calculate gross pay, deductions, and net salary</p></div></div><div class="topbar-right"><a class="topbar-pill" th:href="@{/payroll/history}">Payroll history</a></div></header>
+        <section class="page-body">
+            <div class="page-header"><div><h2>Calculate employee payroll</h2><p>Choose an employee, enter pay and deductions, then calculate before saving.</p></div><a class="btn btn-light" th:href="@{/employees}">Employee directory</a></div>
+            <div class="alert alert-error" role="alert" th:if="${error}"><span th:text="${error}">Please check the payroll details.</span><button class="alert-close" type="button" aria-label="Dismiss">×</button></div>
+            <div class="alert alert-success" role="status" th:if="${success}"><span th:text="${success}">Payroll saved.</span><button class="alert-close" type="button" aria-label="Dismiss">×</button></div>
+            <div class="grid-2">
+                <section class="panel">
+                    <div class="panel-header"><div><h3>Payroll inputs</h3><p class="panel-subtitle">All amounts are monthly and in Indian rupees (₹).</p></div></div>
+                    <div class="panel-body">
+                        <div class="form-hint-box">Gross salary = basic salary + HRA / allowance + bonus. Net salary = gross salary − tax − other deductions.</div>
+                        <form method="post" th:action="@{/payroll/calculate}" th:object="${payroll}">
+                            <div class="form-grid">
+                                <div class="form-group full"><label for="employeeSelect">Select employee</label><select id="employeeSelect"><option value="">Choose from employee list</option><option th:each="employee : ${employees}" th:value="${employee.employeeId}" th:text="${employee.employeeId} + ' · ' + ${employee.name}" th:attr="data-basic=${employee.basicSalary},data-name=${employee.name},data-department=${employee.department},data-designation=${employee.designation}" th:selected="${payroll.employeeId != null and payroll.employeeId == employee.employeeId}">Employee</option></select><span class="help-text">Selecting an employee fills the ID and basic salary. Or enter the ID below.</span></div>
+                                <div class="form-group"><label for="employeeId">Employee ID<span class="required">*</span></label><input id="employeeId" type="number" min="1" th:field="*{employeeId}" required></div>
+                                <div class="form-group"><label for="basicSalary">Basic salary (₹)<span class="required">*</span></label><input id="basicSalary" type="number" min="0" step="0.01" th:field="*{basicSalary}" required></div>
+                                <div class="form-group"><label for="allowance">HRA / allowance (₹)<span class="required">*</span></label><input id="allowance" type="number" min="0" step="0.01" th:field="*{allowance}" placeholder="0.00" required></div>
+                                <div class="form-group"><label for="bonus">Bonus (₹)<span class="required">*</span></label><input id="bonus" type="number" min="0" step="0.01" th:field="*{bonus}" value="0" placeholder="0.00" required></div>
+                                <div class="form-group"><label for="taxDeduction">Tax deduction (₹)<span class="required">*</span></label><input id="taxDeduction" type="number" min="0" step="0.01" th:field="*{taxDeduction}" value="0" placeholder="0.00" required></div>
+                                <div class="form-group"><label for="otherDeduction">Other deduction (₹)<span class="required">*</span></label><input id="otherDeduction" type="number" min="0" step="0.01" th:field="*{otherDeduction}" value="0" placeholder="0.00" required></div>
+                            </div>
+                            <div class="form-actions"><button class="btn btn-primary" type="submit">Calculate salary</button><a class="btn btn-light" th:href="@{/payroll}">Clear form</a></div>
+                        </form>
+                    </div>
+                </section>
+                <section>
+                    <div class="summary-card" id="livePreview">
+                        <div class="summary-head"><h3 th:text="${calculated} ? 'Calculated salary summary' : 'Live salary preview'">Live salary preview</h3><p>Amounts update as you enter payroll details.</p></div>
+                        <div class="summary-body">
+                            <div class="summary-row"><span class="label">Basic salary</span><span class="value">₹<span id="previewBasic" th:text="${payroll.basicSalary != null ? #numbers.formatDecimal(payroll.basicSalary, 1, 'COMMA', 2, 'POINT') : '0.00'}">0.00</span></span></div>
+                            <div class="summary-row"><span class="label">HRA / allowance</span><span class="value">₹<span id="previewAllowance" th:text="${payroll.allowance != null ? #numbers.formatDecimal(payroll.allowance, 1, 'COMMA', 2, 'POINT') : '0.00'}">0.00</span></span></div>
+                            <div class="summary-row"><span class="label">Bonus</span><span class="value">₹<span id="previewBonus" th:text="${payroll.bonus != null ? #numbers.formatDecimal(payroll.bonus, 1, 'COMMA', 2, 'POINT') : '0.00'}">0.00</span></span></div>
+                            <div class="summary-row total"><span class="label">Gross salary</span><span class="value">₹<span id="previewGross" th:text="${payroll.grossSalary != null ? #numbers.formatDecimal(payroll.grossSalary, 1, 'COMMA', 2, 'POINT') : '0.00'}">0.00</span></span></div>
+                            <div class="summary-row"><span class="label">Total deductions</span><span class="value">− ₹<span id="previewTotalDeduction" th:text="${payroll.totalDeduction != null ? #numbers.formatDecimal(payroll.totalDeduction, 1, 'COMMA', 2, 'POINT') : '0.00'}">0.00</span></span></div>
+                            <div class="summary-row net"><span class="label">Estimated net salary <span class="in-words" id="previewHint">Enter salary details to see the live summary.</span></span><span class="value">₹<span id="previewNet" th:text="${payroll.netSalary != null ? #numbers.formatDecimal(payroll.netSalary, 1, 'COMMA', 2, 'POINT') : '0.00'}">0.00</span></span></div>
+                            <div class="formula-box">Gross = Basic + HRA + Bonus<br>Net = Gross − Tax − Other deduction</div>
+                        </div>
+                    </div>
+                    <div class="panel" id="selectedEmployeeInfo" style="display:none;margin-top:18px"><div class="panel-header"><div><h3>Selected employee</h3><p class="panel-subtitle"><span id="selName"></span> · ID <span id="employeeIdInfo"></span></p></div></div><div class="panel-body"><p><strong id="selDept"></strong> · <span id="selDesig"></span></p><p class="help-text">Basic salary: ₹<span id="selBasic"></span></p></div></div>
+                    <div class="panel" th:if="${existingRecord != null}" style="margin-top:18px"><div class="panel-header"><div><h3>Existing saved record</h3><p class="panel-subtitle">A payroll record is already saved for this employee.</p></div></div><div class="panel-body"><div class="summary-row"><span class="label">Last saved date</span><span class="value" th:text="${existingRecord.payrollDateText}">-</span></div><div class="summary-row net"><span class="label">Saved net salary</span><span class="value">₹<span th:text="${#numbers.formatDecimal(existingRecord.netSalary, 1, 'COMMA', 2, 'POINT')}">0.00</span></span></div></div></div>
+                    <section class="panel" th:if="${calculated}" style="margin-top:18px">
+                        <div class="panel-header"><div><h3>Ready to save</h3><p class="panel-subtitle">Review the calculated details before saving.</p></div><span class="badge badge-green">Calculated</span></div>
+                        <div class="panel-body">
+                            <p><strong th:text="${payroll.employeeName}">Employee</strong><span th:if="${payroll.department != null}" th:text="' · ' + ${payroll.department}"> · Department</span></p>
+                            <form method="post" th:action="@{/payroll/save}" class="form-actions">
+                                <input type="hidden" name="employeeId" th:value="${payroll.employeeId}"><input type="hidden" name="employeeName" th:value="${payroll.employeeName}"><input type="hidden" name="department" th:value="${payroll.department}"><input type="hidden" name="designation" th:value="${payroll.designation}"><input type="hidden" name="basicSalary" th:value="${payroll.basicSalary}"><input type="hidden" name="allowance" th:value="${payroll.allowance}"><input type="hidden" name="bonus" th:value="${payroll.bonus}"><input type="hidden" name="taxDeduction" th:value="${payroll.taxDeduction}"><input type="hidden" name="otherDeduction" th:value="${payroll.otherDeduction}">
+                                <button class="btn btn-success" type="submit">Save payroll record</button><button class="btn btn-light" type="button" data-print>Print summary</button>
+                            </form>
+                        </div>
+                    </section>
+                </section>
+            </div>
+        </section>
+    </main>
+</div>
+<script th:src="@{/js/script.js}"></script>
+</body>
+</html>
